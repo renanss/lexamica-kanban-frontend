@@ -9,15 +9,22 @@ if (!API_BASE_URL) {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+    console.log('Fetching tasks from:', `${API_BASE_URL}/api/tasks${searchParams ? `?${searchParams}` : ''}`);
+    
     const response = await fetch(`${API_BASE_URL}/api/tasks${searchParams ? `?${searchParams}` : ''}`);
+    console.log('Backend response status:', response.status);
     
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Backend error:', errorText);
       throw new Error('Failed to fetch tasks');
     }
 
     const data = await response.json();
+    console.log('Tasks received:', data);
     return NextResponse.json(data);
   } catch (error) {
+    console.error('Error in tasks GET route:', error);
     return NextResponse.json(
       { message: error instanceof Error ? error.message : 'Failed to fetch tasks' },
       { status: 500 }

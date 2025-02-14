@@ -6,13 +6,12 @@ const nextConfig = {
       allowedOrigins: ['localhost:3000']
     }
   },
-  // Enable SWC minification except in Docker development
-  swcMinify: process.env.DOCKER_ENV !== 'development',
   async rewrites() {
+    const apiUrl = process.env.NEXT_API_URL || 'http://localhost:4000';
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL}/api/:path*`
+        destination: `${apiUrl}/api/:path*`
       }
     ];
   },
