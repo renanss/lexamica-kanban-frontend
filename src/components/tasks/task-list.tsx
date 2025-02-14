@@ -156,17 +156,22 @@ export function TaskList() {
 
       {tasks.length === 0 ? (
         <Alert variant="info">
-          No tasks found. Click "Add Task" to create one.
+          No tasks found. Click &quot;Add Task&quot; to create one.
         </Alert>
       ) : (
-        tasks.map((task) => (
-          <TaskCard
-            key={task.id}
-            task={task}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          />
-        ))
+        <div className="task-list">
+          {tasks.map((task) => (
+            <TaskCard
+              key={task.id || task._id}
+              task={{
+                ...task,
+                id: task.id || task._id
+              }}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+            />
+          ))}
+        </div>
       )}
 
       <TaskForm

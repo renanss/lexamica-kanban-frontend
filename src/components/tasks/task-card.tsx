@@ -30,7 +30,7 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
           <Button
             variant="outline-danger"
             size="sm"
-            onClick={() => onDelete?.(task.id)}
+            onClick={() => onDelete?.(task.id || task._id)}
           >
             Delete
           </Button>
