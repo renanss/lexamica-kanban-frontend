@@ -23,6 +23,12 @@ const nextConfig = {
         aggregateTimeout: 300,
       }
     }
+    // Disable PostCSS processing
+    const rules = config.module.rules;
+    const cssRule = rules.find((rule) => rule.test && rule.test.toString().includes('css'));
+    if (cssRule) {
+      cssRule.use = cssRule.use.filter((loader) => !loader.loader?.includes('postcss-loader'));
+    }
     return config
   },
 };

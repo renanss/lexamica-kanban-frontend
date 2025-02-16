@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { BoardProvider } from "@/providers/board-provider";
 import "@/styles/globals.scss";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -25,7 +26,9 @@ export default function RootLayout({
           </header>
           <main className="flex-grow-1 py-4">
             <div className="container">
-              {children}
+              <BoardProvider>
+                {children}
+              </BoardProvider>
             </div>
           </main>
         </div>
