@@ -1,10 +1,9 @@
-import { TaskList } from '@/components/tasks/task-list';
+import { BoardContainer } from '@/components/board/board-container';
 
 export default function Home() {
   return (
     <div>
-      <h1 className="text-center mb-4">Tasks</h1>
-      <TaskList />
+      <BoardContainer />
     </div>
   );
 }

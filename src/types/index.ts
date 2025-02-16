@@ -1,5 +1,5 @@
 export interface Column {
-  id: string;
+  _id: string;
   title: string;
   order: number;
   taskCount: number;
@@ -8,7 +8,6 @@ export interface Column {
 }
 
 export interface Task {
-  id?: string;
   _id: string;
   title: string;
   description?: string;

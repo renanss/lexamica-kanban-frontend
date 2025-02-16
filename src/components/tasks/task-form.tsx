@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button, Form, Modal } from 'react-bootstrap';
 import { Task } from '@/types';
 
@@ -17,6 +17,17 @@ export function TaskForm({ show, onHide, onSubmit, initialData, columnId }: Task
   const [description, setDescription] = useState(initialData?.description ?? '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Update form when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      setTitle(initialData.title);
+      setDescription(initialData.description ?? '');
+    } else {
+      setTitle('');
+      setDescription('');
+    }
+  }, [initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
