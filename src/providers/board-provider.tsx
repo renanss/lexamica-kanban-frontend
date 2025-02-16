@@ -159,7 +159,6 @@ export function BoardProvider({ children }: { children: ReactNode }) {
 
   const handleUpdateTask = async (taskId: string, title: string, description: string) => {
     try {
-      setLoading(true);
       setError(null);
       
       const response = await fetch(`/api/tasks?id=${taskId}`, {
@@ -172,19 +171,15 @@ export function BoardProvider({ children }: { children: ReactNode }) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to update task');
       }
-      
     } catch (error) {
       console.error('Error updating task:', error);
       setError(error instanceof Error ? error.message : 'Failed to update task');
       throw error;
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleCreateTask = async (title: string, description: string, columnId: string) => {
     try {
-      setLoading(true);
       setError(null);
       const response = await fetch('/api/tasks', {
         method: 'POST',
@@ -195,18 +190,14 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       if (!response.ok) {
         throw new Error('Failed to create task');
       }
-
-      
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to create task');
-    } finally {
-      setLoading(false);
+      throw error;
     }
   };
 
   const handleDeleteTask = async (taskId: string) => {
     try {
-      setLoading(true);
       setError(null);
       const response = await fetch(`/api/tasks?id=${taskId}`, {
         method: 'DELETE',
@@ -215,17 +206,14 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       if (!response.ok) {
         throw new Error('Failed to delete task');
       }
-
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to delete task');
-    } finally {
-      setLoading(false);
+      throw error;
     }
   };
 
   const handleMoveTask = async (taskId: string, targetColumnId: string, order: number) => {
     try {
-      setLoading(true);
       setError(null);
       const response = await fetch(`/api/tasks/${taskId}/move`, {
         method: 'PUT',
@@ -236,11 +224,9 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       if (!response.ok) {
         throw new Error('Failed to move task');
       }
-
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to move task');
-    } finally {
-      setLoading(false);
+      throw error;
     }
   };
 

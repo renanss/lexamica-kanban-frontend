@@ -13,21 +13,23 @@ interface TaskFormProps {
 }
 
 export function TaskForm({ show, onHide, onSubmit, initialData, columnId }: TaskFormProps) {
-  const [title, setTitle] = useState(initialData?.title ?? '');
-  const [description, setDescription] = useState(initialData?.description ?? '');
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Update form when initialData changes
   useEffect(() => {
-    if (initialData) {
-      setTitle(initialData.title);
-      setDescription(initialData.description ?? '');
-    } else {
-      setTitle('');
-      setDescription('');
+    if (show) {
+      if (initialData) {
+        setTitle(initialData.title);
+        setDescription(initialData.description ?? '');
+      } else {
+        setTitle('');
+        setDescription('');
+      }
+      setError(null);
     }
-  }, [initialData]);
+  }, [show, initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +41,8 @@ export function TaskForm({ show, onHide, onSubmit, initialData, columnId }: Task
         description,
         columnId: initialData?.columnId ?? columnId,
       });
+      setTitle('');
+      setDescription('');
       onHide();
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to save task');
@@ -47,8 +51,15 @@ export function TaskForm({ show, onHide, onSubmit, initialData, columnId }: Task
     }
   };
 
+  const handleClose = () => {
+    setTitle('');
+    setDescription('');
+    setError(null);
+    onHide();
+  };
+
   return (
-    <Modal show={show} onHide={onHide}>
+    <Modal show={show} onHide={handleClose}>
       <Form onSubmit={handleSubmit}>
         <Modal.Header closeButton>
           <Modal.Title>{initialData ? 'Edit Task' : 'New Task'}</Modal.Title>
@@ -81,7 +92,7 @@ export function TaskForm({ show, onHide, onSubmit, initialData, columnId }: Task
           </Form.Group>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={onHide}>
+          <Button variant="secondary" onClick={handleClose}>
             Cancel
           </Button>
           <Button variant="primary" type="submit" disabled={loading}>
