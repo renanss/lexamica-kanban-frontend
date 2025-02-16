@@ -36,34 +36,30 @@ export function BoardProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize WebSocket connection
-  useEffect(() => {
-    websocketService.connect();
-
-    // Listen for real-time updates
-    websocketService.on('task:updated', handleTaskWebSocketUpdate);
-    websocketService.on('task:created', handleTaskWebSocketCreate);
-    websocketService.on('task:deleted', handleTaskWebSocketDelete);
-    websocketService.on('task:moved', handleTaskWebSocketMove);
-    websocketService.on('column:updated', handleColumnWebSocketUpdate);
-
-    return () => {
-      websocketService.disconnect();
-    };
-  }, []);
-
-  // WebSocket event handlers
   const handleTaskWebSocketUpdate = useCallback((updatedTask: Task) => {
     setTasks(prev => {
-      const columnId = updatedTask.columnId;
-      const columnTasks = prev[columnId] || [];
-      const updatedTasks = columnTasks.map(task => 
-        task._id === updatedTask._id ? updatedTask : task
-      );
-      
+      const columnId = typeof updatedTask.columnId === 'object' && (updatedTask.columnId as { _id: string })?._id 
+        ? (updatedTask.columnId as { _id: string })._id 
+        : updatedTask.columnId;
+
+      let currentColumnId = columnId;
+      for (const [colId, tasks] of Object.entries(prev)) {
+        if (tasks.some(task => task._id === updatedTask._id)) {
+          currentColumnId = colId;
+          break;
+        }
+      }
+
+      const normalizedTask = {
+        ...updatedTask,
+        columnId: currentColumnId,
+      };
+
       return {
         ...prev,
-        [columnId]: updatedTasks,
+        [currentColumnId]: prev[currentColumnId]?.map(task =>
+          task._id === normalizedTask._id ? normalizedTask : task
+        ) || [],
       };
     });
   }, []);
@@ -161,7 +157,6 @@ export function BoardProvider({ children }: { children: ReactNode }) {
     return tasks[columnId] || [];
   }, [tasks]);
 
-  // Update existing methods to use WebSocket
   const handleUpdateTask = async (taskId: string, title: string, description: string) => {
     try {
       setLoading(true);
@@ -177,11 +172,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to update task');
       }
-
-      const updatedTask = await response.json();
       
-      // Emit WebSocket event
-      websocketService.updateTask(updatedTask);
     } catch (error) {
       console.error('Error updating task:', error);
       setError(error instanceof Error ? error.message : 'Failed to update task');
@@ -205,10 +196,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
         throw new Error('Failed to create task');
       }
 
-      const newTask = await response.json();
       
-      // Emit WebSocket event
-      websocketService.createTask(newTask);
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to create task');
     } finally {
@@ -216,7 +204,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const handleDeleteTask = async (taskId: string, columnId: string) => {
+  const handleDeleteTask = async (taskId: string) => {
     try {
       setLoading(true);
       setError(null);
@@ -228,8 +216,6 @@ export function BoardProvider({ children }: { children: ReactNode }) {
         throw new Error('Failed to delete task');
       }
 
-      // Emit WebSocket event
-      websocketService.deleteTask(taskId, columnId);
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to delete task');
     } finally {
@@ -251,8 +237,6 @@ export function BoardProvider({ children }: { children: ReactNode }) {
         throw new Error('Failed to move task');
       }
 
-      // Emit WebSocket event
-      websocketService.moveTask(taskId, targetColumnId, order);
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to move task');
     } finally {
@@ -260,10 +244,23 @@ export function BoardProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Initialize board
   useEffect(() => {
     fetchColumns();
   }, [fetchColumns]);
+
+	useEffect(() => {
+    websocketService.connect();
+
+    websocketService.on('task:updated', handleTaskWebSocketUpdate);
+    websocketService.on('task:created', handleTaskWebSocketCreate);
+    websocketService.on('task:deleted', handleTaskWebSocketDelete);
+    websocketService.on('task:moved', handleTaskWebSocketMove);
+    websocketService.on('column:updated', handleColumnWebSocketUpdate);
+
+    return () => {
+      websocketService.disconnect();
+    };
+  }, []);
 
   return (
     <BoardContext.Provider

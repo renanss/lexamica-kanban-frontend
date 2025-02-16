@@ -9,24 +9,19 @@ interface ServerToClientEvents {
   'column:updated': (column: Column) => void;
 }
 
-interface ClientToServerEvents {
-  'task:update': (task: Task) => void;
-  'task:create': (task: Partial<Task>) => void;
-  'task:delete': (taskId: string, columnId: string) => void;
-  'task:move': (taskId: string, targetColumnId: string, order: number) => void;
-  'column:update': (column: Column) => void;
-}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type EventCallback = (...args: any[]) => void;
 
 class WebSocketService {
-  private socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
-  private listeners: Map<string, Set<Function>> = new Map();
+  private socket: Socket<ServerToClientEvents> | null = null;
+  private listeners: Map<string, Set<EventCallback>> = new Map();
 
   connect() {
     if (this.socket?.connected) return;
 
-    const SOCKET_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://backend:4000';
-    
-    this.socket = io(SOCKET_URL, {
+    const wsUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL;
+
+    this.socket = io(wsUrl, {
       transports: ['websocket'],
       autoConnect: true,
       reconnection: true,
@@ -49,7 +44,7 @@ class WebSocketService {
       console.log('WebSocket disconnected');
     });
 
-    this.socket.on('connect_error', (error) => {
+    this.socket.on('connect_error', (error: Error) => {
       console.error('WebSocket connection error:', error);
     });
 
@@ -75,40 +70,18 @@ class WebSocketService {
     });
   }
 
-  // Methods to emit events to the server
-  updateTask(task: Task) {
-    this.socket?.emit('task:update', task);
-  }
-
-  createTask(task: Partial<Task>) {
-    this.socket?.emit('task:create', task);
-  }
-
-  deleteTask(taskId: string, columnId: string) {
-    this.socket?.emit('task:delete', taskId, columnId);
-  }
-
-  moveTask(taskId: string, targetColumnId: string, order: number) {
-    this.socket?.emit('task:move', taskId, targetColumnId, order);
-  }
-
-  updateColumn(column: Column) {
-    this.socket?.emit('column:update', column);
-  }
-
-  // Event listener management
-  on(event: string, callback: Function) {
+  on(event: keyof ServerToClientEvents, callback: EventCallback) {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set());
     }
     this.listeners.get(event)?.add(callback);
   }
 
-  off(event: string, callback: Function) {
+  off(event: keyof ServerToClientEvents, callback: EventCallback) {
     this.listeners.get(event)?.delete(callback);
   }
 
-  private emit(event: string, ...args: any[]) {
+  private emit(event: keyof ServerToClientEvents, ...args: unknown[]) {
     this.listeners.get(event)?.forEach(callback => {
       callback(...args);
     });
