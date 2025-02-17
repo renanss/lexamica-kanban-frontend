@@ -60,7 +60,7 @@ const TaskForm = ({ show, onHide, onSubmit, initialData, columnId }: TaskFormPro
 
   return (
     <Modal show={show} onHide={handleClose}>
-      <Form onSubmit={handleSubmit}>
+      <Form onSubmit={handleSubmit} role="form">
         <Modal.Header closeButton>
           <Modal.Title>{initialData ? 'Edit Task' : 'New Task'}</Modal.Title>
         </Modal.Header>
@@ -71,8 +71,9 @@ const TaskForm = ({ show, onHide, onSubmit, initialData, columnId }: TaskFormPro
             </div>
           )}
           <Form.Group className="mb-3">
-            <Form.Label>Title</Form.Label>
+            <Form.Label htmlFor="task-title">Title</Form.Label>
             <Form.Control
+              id="task-title"
               type="text"
               placeholder="Enter task title"
               value={title}
@@ -81,8 +82,9 @@ const TaskForm = ({ show, onHide, onSubmit, initialData, columnId }: TaskFormPro
             />
           </Form.Group>
           <Form.Group className="mb-3">
-            <Form.Label>Description</Form.Label>
+            <Form.Label htmlFor="task-description">Description</Form.Label>
             <Form.Control
+              id="task-description"
               as="textarea"
               rows={3}
               placeholder="Enter task description"
