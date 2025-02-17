@@ -6,13 +6,12 @@ const nextConfig = {
       allowedOrigins: ['localhost:3000']
     }
   },
-  // Enable SWC minification except in Docker development
-  swcMinify: process.env.DOCKER_ENV !== 'development',
   async rewrites() {
+    const apiUrl = process.env.NEXT_API_URL || 'http://localhost:4000';
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL}/api/:path*`
+        destination: `${apiUrl}/api/:path*`
       }
     ];
   },
@@ -23,6 +22,12 @@ const nextConfig = {
         poll: 800,
         aggregateTimeout: 300,
       }
+    }
+    // Disable PostCSS processing
+    const rules = config.module.rules;
+    const cssRule = rules.find((rule) => rule.test && rule.test.toString().includes('css'));
+    if (cssRule) {
+      cssRule.use = cssRule.use.filter((loader) => !loader.loader?.includes('postcss-loader'));
     }
     return config
   },

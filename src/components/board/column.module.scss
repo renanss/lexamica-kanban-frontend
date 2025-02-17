@@ -1,0 +1,14 @@
+.column {
+  width: 300px;
+  
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  &__task-list {
+    min-height: 1px;
+    overflow-y: auto;
+  }
+}
