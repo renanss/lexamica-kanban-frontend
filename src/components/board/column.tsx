@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Card, Button, Alert } from 'react-bootstrap';
+import { useDrop } from 'react-dnd';
 import { Column as ColumnType, Task } from '@/types';
 import { TaskCard } from '@/components/tasks/task-card';
 import { TaskForm } from '@/components/tasks/task-form';
@@ -14,9 +15,27 @@ interface ColumnProps {
 }
 
 export function Column({ column, tasks }: ColumnProps) {
-  const { handleCreateTask, handleUpdateTask, handleDeleteTask } = useBoard();
+  const { handleCreateTask, handleUpdateTask, handleDeleteTask, handleMoveTask } = useBoard();
   const [showForm, setShowForm] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | undefined>();
+
+  const ref = useRef<HTMLDivElement>(null);
+  const [, drop] = useDrop({
+    accept: 'TASK',
+    drop: (item: { id: string, columnId: string, type: string }, monitor) => {
+      if (!monitor.didDrop()) {
+        // If the task was dropped on the column (not on another task)
+        // Only handle if the target column is different from the source column
+        if (item.columnId !== column._id) {
+          console.log('Moving task:', item.id, 'from:', item.columnId, 'to:', column._id);
+          const lastTaskOrder = tasks.length > 0 ? tasks[tasks.length - 1].order : 0;
+          handleMoveTask(item.id, column._id, lastTaskOrder + 1);
+        }
+      }
+    },
+  });
+
+  drop(ref);
 
   const handleEdit = (task: Task) => {
     if (!task._id) {
@@ -30,7 +49,7 @@ export function Column({ column, tasks }: ColumnProps) {
   const handleSubmit = async (data: Pick<Task, 'title' | 'description' | 'columnId'>) => {
     try {
       if (editingTask) {
-        const taskId = editingTask._id || editingTask._id;
+        const taskId = editingTask._id;
         if (!taskId) {
           throw new Error('Cannot update task without ID');
         }
@@ -42,7 +61,6 @@ export function Column({ column, tasks }: ColumnProps) {
       setEditingTask(undefined);
     } catch (error) {
       console.error('Failed to save task:', error);
-      // You might want to show an error message to the user here
     }
   };
 
@@ -56,8 +74,39 @@ export function Column({ column, tasks }: ColumnProps) {
       await handleDeleteTask(taskId, column._id);
     } catch (error) {
       console.error('Failed to delete task:', error);
-      // You might want to show an error message to the user here
     }
+  };
+
+  const handleMove = (dragIndex: number, hoverIndex: number, sourceColumnId: string, targetColumnId: string, dragId: string) => {
+    let newOrder: number;
+    
+    // Sort tasks by order to ensure correct calculations
+    const sortedTasks = [...tasks].sort((a, b) => a.order - b.order);
+    
+    if (hoverIndex === 0) {
+      // Moving to the start of the list
+      newOrder = sortedTasks[0] ? Math.floor(sortedTasks[0].order - 1000) : 0;
+    } else if (hoverIndex >= tasks.length) {
+      // Moving to the end of the list
+      newOrder = sortedTasks[sortedTasks.length - 1] ? Math.floor(sortedTasks[sortedTasks.length - 1].order + 1000) : 1000;
+    } else {
+      // Moving between two tasks
+      const prevTask = sortedTasks[hoverIndex - 1];
+      const nextTask = sortedTasks[hoverIndex];
+      
+      if (dragIndex < hoverIndex) {
+        // Moving downward
+        newOrder = Math.floor(nextTask.order + 1000);
+      } else {
+        // Moving upward
+        newOrder = Math.floor(prevTask.order - 1000);
+      }
+    }
+
+    // Ensure order is never negative
+    newOrder = Math.max(0, newOrder);
+    
+    handleMoveTask(dragId, targetColumnId, newOrder);
   };
 
   if (!column._id) {
@@ -70,7 +119,7 @@ export function Column({ column, tasks }: ColumnProps) {
 
   return (
     <div className="d-flex flex-column h-100 gap-3">
-      <Card className={`h-100 ${styles.column} ${styles.test}`}>
+      <Card ref={ref} className={`h-100 ${styles.column}`}>
         <Card.Header className={styles.column__header}>
           <div className="d-flex align-items-center gap-2">
             <h3 className="h6 mb-0">{column.title}</h3>
@@ -86,16 +135,20 @@ export function Column({ column, tasks }: ColumnProps) {
         </Card.Header>
         <Card.Body className={styles.column__task_list}>
           <div className="task-list d-flex flex-column gap-2">
-            {tasks.map((task) => {
+            {tasks.map((task, index) => {
               const taskId = task._id;
               if (!taskId) return null;
               
               return (
                 <TaskCard
-                  key={taskId}
+                  key={`${taskId}-${index}`}
                   task={task}
+                  index={index}
+                  columnId={column._id}
                   onEdit={handleEdit}
                   onDelete={() => handleDelete(taskId)}
+                  onMove={(dragIndex, hoverIndex, sourceColumnId, targetColumnId, dragId) => 
+                    handleMove(dragIndex, hoverIndex, sourceColumnId, targetColumnId, dragId)}
                 />
               );
             })}

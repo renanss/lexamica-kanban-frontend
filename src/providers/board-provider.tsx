@@ -90,14 +90,40 @@ export function BoardProvider({ children }: { children: ReactNode }) {
 
   const handleTaskWebSocketMove = useCallback((movedTask: Task) => {
     setTasks(prev => {
-      // Add to new column
-      const newColumnTasks = prev[movedTask.columnId] || [];
-      const updatedNewColumnTasks = [...newColumnTasks, movedTask];
+      // Normalize the columnId (handle both string and object formats)
+      const targetColumnId = typeof movedTask.columnId === 'object' 
+        ? (movedTask.columnId as { _id: string })._id 
+        : movedTask.columnId;
 
-      return {
-        ...prev,
-        [movedTask.columnId]: updatedNewColumnTasks,
+      // Find the source column by looking for the task in all columns
+      let sourceColumnId: string | null = null;
+      for (const [colId, tasks] of Object.entries(prev)) {
+        if (tasks.some(task => task._id === movedTask._id)) {
+          sourceColumnId = colId;
+          break;
+        }
+      }
+
+      const newState = { ...prev };
+
+      // Remove from source column if found
+      if (sourceColumnId) {
+        newState[sourceColumnId] = prev[sourceColumnId].filter(
+          task => task._id !== movedTask._id
+        );
+      }
+
+      // Normalize the task object
+      const normalizedTask = {
+        ...movedTask,
+        columnId: targetColumnId,
       };
+
+      // Add to target column
+      const targetColumnTasks = prev[targetColumnId] || [];
+      newState[targetColumnId] = [...targetColumnTasks, normalizedTask];
+
+      return newState;
     });
   }, []);
 
@@ -159,7 +185,6 @@ export function BoardProvider({ children }: { children: ReactNode }) {
 
   const handleUpdateTask = async (taskId: string, title: string, description: string) => {
     try {
-      setLoading(true);
       setError(null);
       
       const response = await fetch(`/api/tasks?id=${taskId}`, {
@@ -172,19 +197,15 @@ export function BoardProvider({ children }: { children: ReactNode }) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to update task');
       }
-      
     } catch (error) {
       console.error('Error updating task:', error);
       setError(error instanceof Error ? error.message : 'Failed to update task');
       throw error;
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleCreateTask = async (title: string, description: string, columnId: string) => {
     try {
-      setLoading(true);
       setError(null);
       const response = await fetch('/api/tasks', {
         method: 'POST',
@@ -195,18 +216,14 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       if (!response.ok) {
         throw new Error('Failed to create task');
       }
-
-      
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to create task');
-    } finally {
-      setLoading(false);
+      throw error;
     }
   };
 
   const handleDeleteTask = async (taskId: string) => {
     try {
-      setLoading(true);
       setError(null);
       const response = await fetch(`/api/tasks?id=${taskId}`, {
         method: 'DELETE',
@@ -215,18 +232,53 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       if (!response.ok) {
         throw new Error('Failed to delete task');
       }
-
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to delete task');
-    } finally {
-      setLoading(false);
+      throw error;
     }
   };
 
   const handleMoveTask = async (taskId: string, targetColumnId: string, order: number) => {
     try {
-      setLoading(true);
       setError(null);
+      
+      // Find the source column and task
+      let sourceColumnId: string | null = null;
+      let movedTask: Task | null = null;
+      
+      // Find the source column and task in the current state
+      for (const [colId, columnTasks] of Object.entries(tasks)) {
+        const task = (columnTasks as Task[]).find(t => t._id === taskId);
+        if (task) {
+          sourceColumnId = colId;
+          movedTask = task;
+          break;
+        }
+      }
+
+      if (!sourceColumnId || !movedTask) {
+        throw new Error('Task not found');
+      }
+
+      // Optimistically update the UI
+      setTasks(prev => {
+        const newState = { ...prev };
+        
+        // Remove from source column
+        newState[sourceColumnId!] = prev[sourceColumnId!].filter(
+          task => task._id !== taskId
+        );
+        
+        // Add to target column with new order
+        const targetTasks = prev[targetColumnId] || [];
+        const updatedTask = { ...movedTask!, columnId: targetColumnId, order };
+        newState[targetColumnId] = [...targetTasks, updatedTask]
+          .sort((a, b) => a.order - b.order);
+        
+        return newState;
+      });
+
+      // Make the API call
       const response = await fetch(`/api/tasks/${taskId}/move`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -234,13 +286,42 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       });
 
       if (!response.ok) {
+        // If the API call fails, revert the optimistic update
+        setTasks(prev => {
+          const newState = { ...prev };
+          
+          // Remove from target column
+          newState[targetColumnId] = prev[targetColumnId].filter(
+            task => task._id !== taskId
+          );
+          
+          // Add back to source column
+          const sourceTasks = prev[sourceColumnId!] || [];
+          newState[sourceColumnId!] = [...sourceTasks, movedTask!]
+            .sort((a, b) => a.order - b.order);
+          
+          return newState;
+        });
+        
         throw new Error('Failed to move task');
       }
 
+      // Get the updated task from the response
+      const updatedTask = await response.json();
+      
+      // Update with the server response to ensure consistency
+      setTasks(prev => {
+        const newState = { ...prev };
+        const targetTasks = prev[targetColumnId] || [];
+        newState[targetColumnId] = targetTasks
+          .filter(task => task._id !== taskId)
+          .concat(updatedTask)
+          .sort((a, b) => a.order - b.order);
+        return newState;
+      });
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to move task');
-    } finally {
-      setLoading(false);
+      throw error;
     }
   };
 
