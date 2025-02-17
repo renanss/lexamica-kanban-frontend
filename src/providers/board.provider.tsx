@@ -45,29 +45,40 @@ const BoardProvider = ({ children }: { children: ReactNode }) => {
 	const { columns, loading: columnsLoading, error: columnsError, setColumns, fetchColumns, handleCreateColumn, handleUpdateColumn, handleDeleteColumn } = useColumns();
 	const { tasks, loading: tasksLoading, error: tasksError, setTasks, getTasksForColumn, handleUpdateTask, handleCreateTask, handleDeleteTask, handleMoveTask, fetchTasksByColumn } = useTasks();
   const handleTaskWebSocketUpdate = useCallback((updatedTask: Task) => {
-    setTasks(prev => {
-      const columnId = typeof updatedTask.columnId === 'object' && (updatedTask.columnId as { _id: string })?._id 
-        ? (updatedTask.columnId as { _id: string })._id 
-        : updatedTask.columnId;
+    const extractColumnId = (task: Task): string => {
+      return typeof task.columnId === 'object' && (task.columnId as { _id: string })?._id 
+        ? (task.columnId as { _id: string })._id 
+        : task.columnId as string;
+    };
 
-      let currentColumnId = columnId;
-      for (const [colId, tasks] of Object.entries(prev)) {
-        if (tasks.some(task => task._id === updatedTask._id)) {
-          currentColumnId = colId;
-          break;
+    const findCurrentColumnId = (tasksMap: Record<string, Task[]>, taskId: string, defaultColumnId: string): string => {
+      for (const [colId, tasks] of Object.entries(tasksMap)) {
+        if (tasks.some(task => task._id === taskId)) {
+          return colId;
         }
       }
+      return defaultColumnId;
+    };
 
-      const normalizedTask = {
-        ...updatedTask,
-        columnId: currentColumnId,
+    const createNormalizedTask = (task: Task, columnId: string): Task => {
+      return {
+        ...task,
+        columnId,
       };
+    };
 
+    const updateTasksInColumn = (tasks: Task[], normalizedTask: Task): Task[] => {
+      return tasks.map(task => task._id === normalizedTask._id ? normalizedTask : task) || [];
+    };
+
+    setTasks(prev => {
+      const columnId = extractColumnId(updatedTask);
+      const currentColumnId = findCurrentColumnId(prev, updatedTask._id, columnId);
+      const normalizedTask = createNormalizedTask(updatedTask, currentColumnId);
+      
       return {
         ...prev,
-        [currentColumnId]: prev[currentColumnId]?.map(task =>
-          task._id === normalizedTask._id ? normalizedTask : task
-        ) || [],
+        [currentColumnId]: updateTasksInColumn(prev[currentColumnId] || [], normalizedTask),
       };
     });
   }, []);
@@ -97,39 +108,48 @@ const BoardProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const handleTaskWebSocketMove = useCallback((movedTask: Task) => {
-    setTasks(prev => {
-      // Normalize the columnId (handle both string and object formats)
-      const targetColumnId = typeof movedTask.columnId === 'object' 
-        ? (movedTask.columnId as { _id: string })._id 
-        : movedTask.columnId;
+    const extractTargetColumnId = (task: Task): string => {
+      return typeof task.columnId === 'object' 
+        ? (task.columnId as { _id: string })._id 
+        : task.columnId as string;
+    };
 
-      // Find the source column by looking for the task in all columns
-      let sourceColumnId: string | null = null;
-      for (const [colId, tasks] of Object.entries(prev)) {
-        if (tasks.some(task => task._id === movedTask._id)) {
-          sourceColumnId = colId;
-          break;
+    const findSourceColumnId = (tasksMap: Record<string, Task[]>, taskId: string): string | null => {
+      for (const [colId, tasks] of Object.entries(tasksMap)) {
+        if (tasks.some(task => task._id === taskId)) {
+          return colId;
         }
       }
+      return null;
+    };
+
+    const createNormalizedTask = (task: Task, targetColumnId: string): Task => {
+      return {
+        ...task,
+        columnId: targetColumnId,
+      };
+    };
+
+    const removeFromSourceColumn = (tasks: Task[], taskId: string): Task[] => {
+      return tasks.filter(task => task._id !== taskId);
+    };
+
+    const addToTargetColumn = (tasks: Task[], task: Task): Task[] => {
+      return [...tasks, task];
+    };
+
+    setTasks(prev => {
+      const targetColumnId = extractTargetColumnId(movedTask);
+      const sourceColumnId = findSourceColumnId(prev, movedTask._id);
+      const normalizedTask = createNormalizedTask(movedTask, targetColumnId);
 
       const newState = { ...prev };
 
-      // Remove from source column if found
       if (sourceColumnId) {
-        newState[sourceColumnId] = prev[sourceColumnId].filter(
-          task => task._id !== movedTask._id
-        );
+        newState[sourceColumnId] = removeFromSourceColumn(prev[sourceColumnId], movedTask._id);
       }
 
-      // Normalize the task object
-      const normalizedTask = {
-        ...movedTask,
-        columnId: targetColumnId,
-      };
-
-      // Add to target column
-      const targetColumnTasks = prev[targetColumnId] || [];
-      newState[targetColumnId] = [...targetColumnTasks, normalizedTask];
+      newState[targetColumnId] = addToTargetColumn(prev[targetColumnId] || [], normalizedTask);
 
       return newState;
     });
