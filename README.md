@@ -1,36 +1,117 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Lexamica Kanban Frontend
 
-## Getting Started
+A real-time Kanban board frontend demo built with Next.js and React Bootstrap.
 
-First, run the development server:
+## Tech Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Next.js 15.1
+- React 18
+- React Bootstrap
+- React DnD (Drag and Drop)
+- Socket.IO Client
+- SCSS for styling
+- TypeScript
+
+## Project Structure
+
+```
+src/
+├── app/                    # Next.js app directory
+│   ├── api/               # API route handlers
+│   ├── components/            # React components
+│   │   ├── board/            # Board-related components
+│   │   ├── tasks/            # Task-related components
+│   │   └── common/           # Shared components
+│   ├── providers/            # React context providers
+│   ├── services/            # Service layer
+│   ├── styles/             # Global styles
+│   ├── types/              # TypeScript type definitions
+│   └── hooks/             # Custom React hooks
+├── README.md
+└── package.json
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Features
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Real-time updates using WebSocket
+- Drag and drop task management
+- Responsive design
+- Form validation
+- Error handling and boundaries
+- TypeScript type safety
+- SCSS modules for component styling
+- API route handlers for backend communication
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Development
 
-## Learn More
+1. Install dependencies:
+```bash
+npm install
+```
 
-To learn more about Next.js, take a look at the following resources:
+2. Set up environment variables:
+```bash
+cp .env.example .env.development.local
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. Start development server:
+```bash
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The application will be available at `http://localhost:3000`.
 
-## Deploy on Vercel
+## Environment Variables
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```env
+# API Configuration
+NEXT_API_URL=http://localhost:4000 # Backend API URL
+NEXT_PUBLIC_WEBSOCKET_URL=ws://localhost:4000 # WebSocket URL
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Docker Support
+
+The application includes Docker configuration for development:
+- Hot-reload enabled
+- Volume mounting for real-time code changes
+- Optimized for development workflow
+
+To run with Docker:
+```bash
+docker build -t frontend .
+docker run -p 3000:3000 frontend
+```
+
+## Key Components
+
+### Board
+- Manages overall board state
+- Handles WebSocket connections
+- Provides context for child components
+
+### Column
+- Displays tasks in a column
+- Handles drag and drop interactions
+- Manages task ordering
+
+### TaskCard
+- Individual task display
+- Drag and drop functionality
+- Edit and delete actions
+
+### TaskForm
+- Task creation and editing
+- Form validation
+- Error handling
+
+## State Management
+
+The application uses React Context (BoardProvider) for state management, featuring:
+- Real-time updates via WebSocket
+- Optimistic updates for better UX
+- Error handling and recovery
+- Type-safe state management
+
+## License
+
+[MIT License](LICENSE)
