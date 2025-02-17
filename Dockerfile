@@ -7,21 +7,20 @@ WORKDIR /app
 # Install dependencies first (better layer caching)
 COPY package*.json ./
 
-# Clean install without platform-specific binaries
+# Clean install dependencies
 RUN npm cache clean --force && \
-    rm -rf node_modules && \
-    rm -rf .next && \
     npm install
 
 # Copy the rest of the code
 COPY . .
 
-# Expose port
-EXPOSE 3000
-
 # Set environment variables
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV DOCKER_ENV=development
+ENV NODE_ENV=development
+ENV WATCHPACK_POLLING=true
+
+# Expose port
+EXPOSE 3000
 
 # Start development server
 CMD ["npm", "run", "dev"] 
