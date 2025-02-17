@@ -17,7 +17,7 @@ interface BoardContextType {
   refreshBoard: () => Promise<void>;
 }
 
-export const BoardContext = createContext<BoardContextType>({
+const BoardContext = createContext<BoardContextType>({
   columns: [],
   tasks: {},
   loading: true,
@@ -30,7 +30,7 @@ export const BoardContext = createContext<BoardContextType>({
   refreshBoard: async () => {},
 });
 
-export function BoardProvider({ children }: { children: ReactNode }) {
+const BoardProvider = ({ children }: { children: ReactNode }) => {
   const [columns, setColumns] = useState<Column[]>([]);
   const [tasks, setTasks] = useState<Record<string, Task[]>>({});
   const [loading, setLoading] = useState(true);
@@ -371,3 +371,5 @@ export function useBoard() {
   }
   return context;
 } 
+
+export default BoardProvider;

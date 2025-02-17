@@ -1,11 +1,11 @@
 'use client';
 
 import { Alert } from 'react-bootstrap';
-import { Column } from '@/components/board/column';
-import { useBoard } from '@/providers/board-provider';
+import Column from '@/components/board/column';
+import { useBoard } from '@/providers/board.provider';
 import styles from './board.module.scss';
 
-export function Board() {
+const Board = () => {
   const { columns, getTasksForColumn, loading, error } = useBoard();
 
   if (loading) {
@@ -45,3 +45,5 @@ export function Board() {
     </div>
   );
 } 
+
+export default Board;

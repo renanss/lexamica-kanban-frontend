@@ -4,9 +4,9 @@ import { useState, useRef } from 'react';
 import { Card, Button, Alert } from 'react-bootstrap';
 import { useDrop } from 'react-dnd';
 import { Column as ColumnType, Task } from '@/types';
-import { TaskCard } from '@/components/tasks/task-card';
-import { TaskForm } from '@/components/tasks/task-form';
-import { useBoard } from '@/providers/board-provider';
+import TaskCard from '@/components/tasks/task-card';
+import TaskForm from '@/components/tasks/task-form';
+import { useBoard } from '@/providers/board.provider';
 import styles from './column.module.scss';
 
 interface ColumnProps {
@@ -14,7 +14,7 @@ interface ColumnProps {
   tasks: Task[];
 }
 
-export function Column({ column, tasks }: ColumnProps) {
+const Column = ({ column, tasks }: ColumnProps) => {
   const { handleCreateTask, handleUpdateTask, handleDeleteTask, handleMoveTask } = useBoard();
   const [showForm, setShowForm] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | undefined>();
@@ -24,8 +24,6 @@ export function Column({ column, tasks }: ColumnProps) {
     accept: 'TASK',
     drop: (item: { id: string, columnId: string, type: string }, monitor) => {
       if (!monitor.didDrop()) {
-        // If the task was dropped on the column (not on another task)
-        // Only handle if the target column is different from the source column
         if (item.columnId !== column._id) {
           console.log('Moving task:', item.id, 'from:', item.columnId, 'to:', column._id);
           const lastTaskOrder = tasks.length > 0 ? tasks[tasks.length - 1].order : 0;
@@ -80,17 +78,13 @@ export function Column({ column, tasks }: ColumnProps) {
   const handleMove = (dragIndex: number, hoverIndex: number, sourceColumnId: string, targetColumnId: string, dragId: string) => {
     let newOrder: number;
     
-    // Sort tasks by order to ensure correct calculations
     const sortedTasks = [...tasks].sort((a, b) => a.order - b.order);
     
     if (hoverIndex === 0) {
-      // Moving to the start of the list
       newOrder = sortedTasks[0] ? Math.floor(sortedTasks[0].order - 1000) : 0;
     } else if (hoverIndex >= tasks.length) {
-      // Moving to the end of the list
       newOrder = sortedTasks[sortedTasks.length - 1] ? Math.floor(sortedTasks[sortedTasks.length - 1].order + 1000) : 1000;
     } else {
-      // Moving between two tasks
       const prevTask = sortedTasks[hoverIndex - 1];
       const nextTask = sortedTasks[hoverIndex];
       
@@ -103,7 +97,6 @@ export function Column({ column, tasks }: ColumnProps) {
       }
     }
 
-    // Ensure order is never negative
     newOrder = Math.max(0, newOrder);
     
     handleMoveTask(dragId, targetColumnId, newOrder);
@@ -166,3 +159,5 @@ export function Column({ column, tasks }: ColumnProps) {
     </div>
   );
 } 
+
+export default Column;

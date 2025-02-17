@@ -1,4 +1,4 @@
-import { BoardContainer } from '@/components/board/board-container';
+import BoardContainer from '@/components/board/board.container';
 
 export default function Home() {
   return (

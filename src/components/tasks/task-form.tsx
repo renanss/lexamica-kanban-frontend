@@ -12,7 +12,7 @@ interface TaskFormProps {
   columnId: string;
 }
 
-export function TaskForm({ show, onHide, onSubmit, initialData, columnId }: TaskFormProps) {
+const TaskForm = ({ show, onHide, onSubmit, initialData, columnId }: TaskFormProps) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
@@ -103,3 +103,5 @@ export function TaskForm({ show, onHide, onSubmit, initialData, columnId }: Task
     </Modal>
   );
 } 
+
+export default TaskForm;
