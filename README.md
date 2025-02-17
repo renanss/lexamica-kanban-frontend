@@ -88,6 +88,7 @@ docker run -p 3000:3000 frontend
 - Manages overall board state
 - Handles WebSocket connections
 - Provides context for child components
+- Responsiveness is generic side-scroll, same as Trello.
 
 ### Column
 - Displays tasks in a column
