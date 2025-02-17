@@ -79,19 +79,33 @@ export function Column({ column, tasks }: ColumnProps) {
 
   const handleMove = (dragIndex: number, hoverIndex: number, sourceColumnId: string, targetColumnId: string, dragId: string) => {
     let newOrder: number;
+    
+    // Sort tasks by order to ensure correct calculations
+    const sortedTasks = [...tasks].sort((a, b) => a.order - b.order);
+    
     if (hoverIndex === 0) {
       // Moving to the start of the list
-      newOrder = tasks[0] ? Math.max(0, tasks[0].order - 1) : 0;
-    } else if (hoverIndex === tasks.length) {
+      newOrder = sortedTasks[0] ? Math.floor(sortedTasks[0].order - 1000) : 0;
+    } else if (hoverIndex >= tasks.length) {
       // Moving to the end of the list
-      newOrder = tasks[tasks.length - 1] ? tasks[tasks.length - 1].order + 1 : 0;
+      newOrder = sortedTasks[sortedTasks.length - 1] ? Math.floor(sortedTasks[sortedTasks.length - 1].order + 1000) : 1000;
     } else {
       // Moving between two tasks
-      const prevTask = tasks[hoverIndex - 1];
-      const nextTask = tasks[hoverIndex];
-      newOrder = Math.max(0, (prevTask.order + nextTask.order) / 2);
+      const prevTask = sortedTasks[hoverIndex - 1];
+      const nextTask = sortedTasks[hoverIndex];
+      
+      if (dragIndex < hoverIndex) {
+        // Moving downward
+        newOrder = Math.floor(nextTask.order + 1000);
+      } else {
+        // Moving upward
+        newOrder = Math.floor(prevTask.order - 1000);
+      }
     }
 
+    // Ensure order is never negative
+    newOrder = Math.max(0, newOrder);
+    
     handleMoveTask(dragId, targetColumnId, newOrder);
   };
 
@@ -127,7 +141,7 @@ export function Column({ column, tasks }: ColumnProps) {
               
               return (
                 <TaskCard
-                  key={taskId}
+                  key={`${taskId}-${index}`}
                   task={task}
                   index={index}
                   columnId={column._id}
